@@ -176,7 +176,64 @@ If possible. Boot the PC with as little RAM as possible (ideally just one stick)
 
 * https://rmprepusb.com/tutorials/028-recover-files-and-photos-from-a-corrupt-sd-card-or-any-drive-free/
 
+-----
 
+# Cold Boot Attack Tools for Linux
+
+## Notes
+This article discusses some of the processes in depth and mentions some other points of interest:
+https://www.linuxjournal.com/magazine/cold-boot-attack-tools-linux
+
+## Download and Build the Cold Boot Attack Tools
+
+Since the source for all of these tools was released, you can download and use them yourself without too much setup. First, go to citp.princeton.edu/memory/code, and download the latest version of the bios_memimage tarball, or the efi_netboot tarball if you want to image a machine that boots with EFI. Then, unpack the tarball. For my examples in this article, I use the bios_memimage package.
+
+The bios_memimage package contains a doc directory with good documentation on the project and how to build and use the source. The tools support both 32- and 64-bit environments. Although the 32-bit version technically will work on a 64-bit system, it can't address all the 64-bit environment's memory space, so you might not get a complete image. To build for a 32-bit environment, enter the bios_memimage directory and type make. To build for a 64-bit environment, enter the bios_memimage directory and type make -f Makefile.64.
+
+Note: I noticed when I compiled the code on my environment, the build errored out with an undefined reference to __stack_chk_fail. This is due to GCC's new stack protection. As a workaround, edit the pxe/Makefile file and change the line that reads:
+
+```
+CFLAGS= -ffreestanding -Os -Wall -I../include -march=i386
+```
+
+to:
+
+```
+CFLAGS= -ffreestanding -Os -Wall -I../include 
+ ↪-march=i386 -fno-stack-protector
+```
+
+## USB-Based Cold Boot Attacks
+Once the code has compiled successfully, you are ready to install the tools. The procedure is different for the USB and PXE tools. For the USB tool, you need a USB drive that you are willing to erase and that is big enough to fit the RAM you want to dump. In the usb directory is a bootable image called scraper.bin. Connect your USB disk (in my example, /dev/sdb), and then use the dd tool as root to overwrite the beginning of the drive with the boot image:
+
+```
+$ sudo dd if=scraper.bin of=/dev/sdb 
+19+1 records in
+19+1 records out
+9792 bytes (9.8 kB) copied, 0.0101028 s, 969 kB/s
+```
+
+Now the disk is ready. Go to the machine you would like to image, connect the USB drive, and then force a CPU reset or pull and then restore the power quickly. Then, set the BIOS to boot from the USB key. This will vary depending on the computer. On some BIOSes, you will press F12 or some other key to see a list of boot options; others require you to enter the BIOS configuration to change the boot order. In any case, once you boot from the USB key, the scraper tool immediately will start dumping the contents of RAM to the disk. Once it has completed, it will attempt an APM power-off or otherwise will reset the machine. Then you can unplug the USB drive and return to your machine.
+
+You can use the provided usbdump tool under the directory of the same name to dump the RAM from the USB disk to your local drive. Simply specify the USB drive as an argument and then redirect the output to a file of your choice:
+
+```
+$ sudo ./usbdump /dev/sdb > memdump.img
+recover segment0 [base: 0x0 size: 653312]
+recover segment1 [base: 0x100000 size: 1062993920]
+```
+
+## PXE-Based Cold Boot Attacks
+
+The PXE-based scraper works somewhat differently from the USB-based scraper. First, if you don't already have a PXE server, you need to configure one. That process is out of the scope of this article, but I explained how to set up a PXE server in the article “PXE Magic” in the April 2008 issue of Linux Journal. Once you have a functional PXE server, copy the pxe/scraper binary to your tftp directory and change your pxelinux configuration so that it points to that file.
+
+Next, connect the target system to the network (or if you set up the PXE server on a laptop, just connect the target system to the laptop via a crossover cable). Then, initiate a CPU reset or power off, and then immediately power on the target system. As with USB booting, different BIOSes have different ways to boot from PXE. On some BIOSes, you can press a function key, and others require that you change the boot order from the BIOS configuration.
+
+Once the target machine gets a DHCP address and boots from the network, it will display a status message and then wait for the pxedump utility to connect. Unlike with the USB-based scraper, the PXE scraper doesn't automatically dump the memory over the network. Instead, you need to execute the pxedump binary found under the pxedump directory as follows:
+
+```
+$ ./pxedump target_machine_IP_address > memdump.img
+```
 
 ------
 
