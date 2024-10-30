@@ -18,6 +18,10 @@ Documentation:
 * 2015 Reaserch Covering DDR2/DDR3 - https://www.youtube.com/watch?v=ZHq2xG4XJXM
 * 2018 Research Media Coverage - https://arstechnica.com/gadgets/2018/09/cold-boot-attacks-given-new-life-with-firmware-attack/
 * Patching MOR Bit in UEFI - https://www.youtube.com/watch?t=449&v=RqvPZnLkP70
+* https://blog.f-secure.com/cold-boot-attacks/
+* https://www.usenix.org/legacy/event/sec08/tech/full_papers/halderman/halderman.pdf
+
+
 
 Software: 
 * Easy2Boot - https://easy2boot.xyz/download/ / https://www.fosshub.com/Easy2Boot.html
